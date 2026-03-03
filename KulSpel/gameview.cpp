@@ -15,6 +15,7 @@
 #include <QGraphicsProxyWidget>
 #include <cmath>
 #include <QPushButton>
+#include <QTimer>
 
 GameView::GameView(QWidget *parent)
     : QGraphicsView(parent)
@@ -496,11 +497,18 @@ void GameView::tick()
         for(Powerup* p: m_powerups){
             if(p->collidesWithItem(m_player)){
                 // apply effekt
-                if(p->powerupType() == Powerup::Type::Health) m_player->takeDamage(-1);
-                auto* t = m_gameScene.addText("+HP");
-                t->setDefaultTextColor(Qt::green);
-                t->setPos(m_player->pos().x(), m_player->pos().y() -20);
-                t->setZValue(1000);
+                if(p->powerupType() == Powerup::Type::Health){
+                    m_player->takeDamage(-1);
+                    auto* t = m_gameScene.addText("+HP");
+
+                    t->setDefaultTextColor(Qt::green);
+                    t->setPos(m_player->pos().x(), m_player->pos().y() -20);
+                    t->setZValue(1000);
+                    QTimer::singleShot(600, this, [this, t](){
+                        m_gameScene.removeItem(t);
+                        delete t;
+                    });
+                }
                 if(p->powerupType() == Powerup::Type::Shield) m_player->activateShield(6000); // 6 sek
                 if(p->powerupType() == Powerup::Type::Minigun) m_player->activateMinigun(6000);
 
