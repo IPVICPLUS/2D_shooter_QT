@@ -9,20 +9,37 @@
 class Enemy : public QGraphicsRectItem
 {
 public:
-    Enemy();
+    enum class Kind{ Chaser, Shooter, Tank, Miniboss};
 
-    void stepTowards(const QPointF& target);
-    void hit(); // när man blir träffad
+    explicit Enemy(Kind kind = Kind::Chaser);
 
-    bool isDead() const { return m_hp <=0;}
-    void updateVisuals();
+    void step(const QPointF& playerCenter); // update varje tic
+    void hit(int dmg = 1 );
+    bool isDead() const { return m_hp <= 0; }
+    Kind kind() const {return m_kind; }
+
+    bool wantsToSHoot() const;
+    QPointF shootDirection(const QPointF& playerCenter) const;
+
 
 private:
+
+    void updateVisuals();
+    void moveTowards(const QPointF& playerCenter);
+
+    Kind m_kind;
+
     int m_hp = 2;
     qreal m_speed = 1.7;
+
+    //flashen
     QElapsedTimer m_flashTimer;
     int m_flashMs = 120;
     bool m_flashing = false;
+
+    // shooting (för shooters/boss)
+    QElapsedTimer m_shootTimer;
+    int m_shootEveryMs = 900;
 };
 
 #endif // ENEMY_H
