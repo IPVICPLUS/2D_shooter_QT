@@ -20,6 +20,7 @@ class Bullet;
 class QGraphicsTextItem;
 class HealthPickUp;
 class Powerup;
+class EnemyBullet;
 class GameView : public QGraphicsView
 {
     Q_OBJECT
@@ -85,6 +86,7 @@ private:
     QList<Bullet*> m_bullets;
     QList<HealthPickUp*> m_pickups;
     QList<Powerup*> m_powerups;
+    QList<EnemyBullet*> m_enemyBullets;
 
     QElapsedTimer m_spawnTimer;
     int m_spawnEveryMs = 3000;
@@ -101,6 +103,7 @@ private:
     int m_score = 0;
 
     bool m_gameOver = false;
+    bool m_bossSpawned = false;
 
     QPushButton* m_startBtn = nullptr;
     QPushButton* m_quitBtn = nullptr;
