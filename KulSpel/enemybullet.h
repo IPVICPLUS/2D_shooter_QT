@@ -3,10 +3,10 @@
 
 #include <QGraphicsRectItem>
 
-class enemyBullet : public QGraphicsRectItem
+class EnemyBullet : public QGraphicsRectItem
 {
 public:
-    enemyBullet(qreal vx, qreal vy);
+    EnemyBullet(qreal vx, qreal vy);
 
     void step();
 
