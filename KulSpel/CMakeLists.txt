@@ -23,6 +23,7 @@ qt_add_executable(KulSpel
     healthpickup.h healthpickup.cpp
     soundmanager.h soundmanager.cpp
     powerup.h powerup.cpp
+    enemybullet.h enemybullet.cpp
 )
 
 
