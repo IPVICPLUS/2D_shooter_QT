@@ -74,6 +74,43 @@ void Enemy::updateVisuals()
     }
 }
 
-void Enemy::moveTowards(const QPointF& PlayerCenter){
+void Enemy::moveTowards(const QPointF& playerCenter)
+{
+    QPointF me = sceneBoundingRect().center();
+    QPointF d = norm(playerCenter - me);
+    moveBy(d.x() * m_speed, d.y() * m_speed);
+}
 
+void Enemy::step(const QPointF& playerCenter)
+{
+    updateVisuals();
+
+    // AI: skjuter håller avståmd lite ( simpel variant kan ändras senare)
+    if(m_kind == Kind::Shooter){
+        QPointF me = sceneBoundingRect().center();
+        double dist = std::hypot(playerCenter.x()-me.x(), playerCenter.y()-me.y());
+        if(dist < 220) { // backa om för nära
+            QPointF d = norm(me - playerCenter);
+            moveBy(d.x() * m_speed, d.y() * m_speed);
+        }else if (dist >320) { // närma sig om för långt ifrån Player
+            moveTowards(playerCenter);
+
+        }
+        return;
+    }
+
+    //boss rör sig långsamt mot spelare
+    moveTowards(playerCenter);
+}
+
+bool Enemy::wantsToSHoot()const
+{
+    if(m_kind != Kind::Shooter && m_kind != Kind::Miniboss) return false;
+    return m_shootTimer.isValid() && m_shootTimer.elapsed() >= m_shootEveryMs;
+}
+
+QPointF Enemy::shootDirection(const QPointF& playerCenter) const
+{
+    QPointF me = sceneBoundingRect().center();
+    return norm(playerCenter - me);
 }
