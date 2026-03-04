@@ -1,4 +1,5 @@
 #include "gameview.h"
+#include "enemybullet.h"
 #include "player.h"
 #include "enemy.h"
 #include "bullet.h"
@@ -267,10 +268,11 @@ void GameView::resetGame()
     m_pickupSpawnTimer.restart();
     m_powerups.clear();
     m_powerupTimer.restart();
-
+    for(auto* b : m_enemyBullets) {m_gameScene.removeItem(b); delete b; }
+    m_enemyBullets.clear();
     m_score = 0;
     m_gameOver =false;
-
+    m_bossSpawned =false;
     // HUD
 
     m_hud = m_gameScene.addText("");
@@ -376,6 +378,25 @@ void GameView::spawnEnemy()
     e->setPos(x, y);
     m_enemies.append(e);
 }
+void GameView::spawnEnemy(Enemy::Kind kind)
+{
+    auto* e = new Enemy(kind);
+    m_gameScene.addItem(e);
+
+    // slumpa spawn nära kanter
+
+    const QRectF b = m_gameScene.sceneRect();
+    int side = QRandomGenerator::global()->bounded(4);
+
+    qreal x = 0, y =0;
+    if (side == 0) {x = b.left() +10; y = QRandomGenerator::global()->bounded((int)b.height()); }
+    if (side == 1) {x = b.right() - 60; y = QRandomGenerator::global()->bounded((int)b.height());}
+    if (side == 2) {x = QRandomGenerator::global()->bounded((int)b.width()); y= b.top() +10; }
+    if (side == 3) {x = QRandomGenerator::global()->bounded((int)b.width()); y= b.bottom() -50; }
+
+    e->setPos(x, y);
+    m_enemies.append(e);
+}
 
 void GameView::updateHud()
 {
@@ -469,10 +490,32 @@ void GameView::tick()
 
         if(m_spawnTimer.elapsed() >= currentSpawnMs) {
             m_spawnTimer.restart();
-            spawnEnemy();
+
+
+            auto pickKind = [this](){
+                           int r = QRandomGenerator::global()->bounded(100);
+
+                if (m_score < 300) {
+                return Enemy::Kind::Chaser;
+                }else if( m_score < 700){
+                    if (r < 70) return Enemy::Kind::Chaser;
+                    if (r < 90) return Enemy::Kind::Shooter;
+                    return Enemy::Kind::Tank;
+                }else{
+                    if( r< 55) return Enemy::Kind::Chaser;
+                    if (r <80) return Enemy::Kind::Shooter;
+                    return Enemy::Kind::Tank;
+                }
+
+            };
+            Enemy::Kind kind = pickKind();
+            spawnEnemy(kind);
         }
 
-
+        if(!m_bossSpawned && m_score >= 1000){
+            spawnEnemy(Enemy::Kind::Miniboss);
+            m_bossSpawned = true;
+        }
 
         // powerups
         if (m_powerups.size() < maxPowerupsOnMap &&
@@ -493,6 +536,8 @@ void GameView::tick()
         QList<Bullet*> bulletsToRemove;
         QList<Enemy*> enemiesToRemove;
         QList<Powerup*> pRemove;
+        QList<EnemyBullet*> enemyBulletsToRemove;
+
 
         for(Powerup* p: m_powerups){
             if(p->collidesWithItem(m_player)){
@@ -522,33 +567,34 @@ void GameView::tick()
             m_gameScene.removeItem(p);
             delete p;
         }
-
+        const QPointF playerCenter = m_player->sceneBoundingRect().center();
         // enemyupdate + contact damage
 
-        const QPointF target = m_player->sceneBoundingRect().center();
+
         for(Enemy* e : m_enemies){
-            e->stepTowards(target);
+            e->step(playerCenter);
             if(e->collidesWithItem(m_player)){
                 m_player->takeDamage(1);
-                e->updateVisuals();
+
             }
+                if(e->wantsToShoot()){
+                    e->onShotFired();
+                    QPointF d = e->shootDirection(playerCenter);
+                    const qreal spd = (e->kind() == Enemy::Kind::Miniboss) ? 7.0 : 6.0;
+
+                    auto* eb = new EnemyBullet(d.x()*spd, d.y()*spd);
+
+
+                    eb->setPos(e->sceneBoundingRect().center());
+
+                    m_gameScene.addItem(eb);
+                    m_enemyBullets.append(eb);
+                }
+                  e->updateVisuals();
+
         }
 
-
-
-        // tidigare health pickup
-        //for (HealthPickUp* p : m_pickups){
-        //  if(p->collidesWithItem(m_player)){
-        //    m_player->takeDamage(-1); // heal 1 hp
-        //  pickupsToRemove.append(p);
-        //}
-        //}
-        //for(HealthPickUp* p : pickupsToRemove){
-        //  m_pickups.removeOne(p);
-        //m_gameScene.removeItem(p);
-        //delete p;
-        //}
-
+// player bullets
         for(Bullet* b : m_bullets) {
             b->step();
 
@@ -558,24 +604,42 @@ void GameView::tick()
                 continue;
             }
 
-            for (Enemy* e : m_enemies) {
+            for(Enemy* e : m_enemies){
                 if(b->collidesWithItem(e)){
                     e->hit();
-                    e->updateVisuals();
                     bulletsToRemove.append(b);
-
                     if(e->isDead()){
                         enemiesToRemove.append(e);
                         m_score += 10;
                     }
-                    break; // skott träffar bara en fiende
+                    break;
                 }
+
             }
-
-
 
         }
 
+        // enemy bullets logik
+
+        for(EnemyBullet* b : m_enemyBullets){
+            b->step();
+
+            if(!bounds.intersects(b->sceneBoundingRect())){
+                enemyBulletsToRemove.append(b);
+                continue;
+            }
+            if(b->collidesWithItem(m_player)){
+                m_player->takeDamage(1);
+                enemyBulletsToRemove.append(b);
+            }
+
+        }
+         // ta bort enemy bullets
+        for(EnemyBullet* b: enemyBulletsToRemove){
+            m_enemyBullets.removeOne(b);
+            m_gameScene.removeItem(b);
+            delete b;
+        }
         // ta bort bullets
         for (Bullet* b : bulletsToRemove){
             m_bullets.removeOne(b);
@@ -597,11 +661,9 @@ void GameView::tick()
         }
 
     }
-    updateHud();
 
 
+     updateHud();
 
-    //uppdatera spelaren varje frame
-    if(m_player)
-        m_player->updateMovement(m_gameScene.sceneRect());
+
 }

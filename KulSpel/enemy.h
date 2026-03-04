@@ -1,6 +1,7 @@
 #ifndef ENEMY_H
 #define ENEMY_H
 #pragma once
+
 #include <QGraphicsRectItem>
 #include <QRectF>
 #include <QPointF>
@@ -11,20 +12,22 @@ class Enemy : public QGraphicsRectItem
 public:
     enum class Kind{ Chaser, Shooter, Tank, Miniboss};
 
-    explicit Enemy(Kind kind = Kind::Chaser);
+    Enemy(Kind kind = Kind::Chaser);
 
+    void stepTowards(const QPointF& target);
     void step(const QPointF& playerCenter); // update varje tic
     void hit(int dmg = 1 );
     bool isDead() const { return m_hp <= 0; }
     Kind kind() const {return m_kind; }
-
-    bool wantsToSHoot() const;
+    void onShotFired() {m_shootTimer.restart(); }
+    bool wantsToShoot() const;
     QPointF shootDirection(const QPointF& playerCenter) const;
+    void updateVisuals();
 
 
 private:
 
-    void updateVisuals();
+
     void moveTowards(const QPointF& playerCenter);
 
     Kind m_kind;
@@ -40,6 +43,7 @@ private:
     // shooting (för shooters/boss)
     QElapsedTimer m_shootTimer;
     int m_shootEveryMs = 900;
+
 };
 
 #endif // ENEMY_H

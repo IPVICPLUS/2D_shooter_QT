@@ -13,7 +13,7 @@ Enemy::Enemy(Kind kind) : m_kind(kind)
     setPen(Qt::NoPen);
 
     // default stats per typ
-    switch(m_kind){
+    switch(kind){
     case Kind::Chaser:
         setRect(0,0,36,36);
         setBrush(QBrush(QColor(255,90,90)));
@@ -51,7 +51,7 @@ Enemy::Enemy(Kind kind) : m_kind(kind)
 
 void Enemy::hit(int dmg)
 {
-    m_hp -= dmg;
+    m_hp -=dmg;
     m_flashing = true;
     m_flashTimer.restart();
     setBrush(QBrush(Qt::white));
@@ -103,7 +103,7 @@ void Enemy::step(const QPointF& playerCenter)
     moveTowards(playerCenter);
 }
 
-bool Enemy::wantsToSHoot()const
+bool Enemy::wantsToShoot()const
 {
     if(m_kind != Kind::Shooter && m_kind != Kind::Miniboss) return false;
     return m_shootTimer.isValid() && m_shootTimer.elapsed() >= m_shootEveryMs;

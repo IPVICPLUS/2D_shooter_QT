@@ -1,6 +1,7 @@
 #ifndef GAMEVIEW_H
 #define GAMEVIEW_H
 #pragma once
+#include "enemy.h"
 #include <QGraphicsView>
 #include <QGraphicsScene>
 #include <QKeyEvent>
@@ -48,6 +49,7 @@ private:
     void showSettings();
     void buildSettings();
     void spawnPowerup();
+    void spawnEnemy(Enemy::Kind kind);
 
     // ---Menu animation ---
 
