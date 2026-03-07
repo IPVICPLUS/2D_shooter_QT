@@ -73,6 +73,9 @@ void Player::activateMinigun(int durationMs)
     m_miniGunMs = durationMs;
     m_minigunTimer.restart();
 
+    m_magSize = m_minigunMagSize;
+    m_ammoInMag = m_magSize;
+
 }
 
 Bullet* Player::tryShoot()
@@ -140,6 +143,11 @@ void Player::updateMovement(const QRectF& bounds)
 
     if(m_minigunActive && m_minigunTimer.elapsed() >= m_miniGunMs){
         m_minigunActive = false;
+
+        m_magSize = m_normalMagsize;
+
+        if(m_ammoInMag > m_magSize)
+            m_ammoInMag = m_magSize;
     }
     if(m_reloading && m_reloadTimer.elapsed() >= m_reloadMs){
         m_ammoInMag = m_magSize;

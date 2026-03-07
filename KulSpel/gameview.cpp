@@ -187,7 +187,7 @@ void GameView::buildSettings()
 QPushButton{
 background-color: #2a2a2a;
 color: white;
-bordet 2px solid #555;
+border 2px solid #555;
 border-radius: 10px;
 font-size: 18px;
 padding: 8px;
@@ -205,7 +205,7 @@ border: 2px solid #ffffff;
 QComboBox{
 background-color: #2a2a2a;
 color: white;
-bordet 2px solid #555;
+border 2px solid #555;
 border-radius: 10px;
 font-size: 18px;
 padding: 8px;
@@ -223,7 +223,7 @@ border: 2px solid #ffffff;
 QSlider{
 background-color: #2a2a2a;
 color: white;
-bordet 2px solid #555;
+border 2px solid #555;
 border-radius: 10px;
 font-size: 18px;
 padding: 8px;

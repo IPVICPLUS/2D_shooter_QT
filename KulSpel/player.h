@@ -59,8 +59,11 @@ private:
     int m_shotCooldownMs = 150;
 
     // reload
-    int m_magSize = 12;
+    int m_normalMagsize = 12;
+    int m_minigunMagSize = 60;
+    int m_magSize = m_normalMagsize;
     int m_ammoInMag = 12;
+
     bool m_reloading = false;
     QElapsedTimer m_reloadTimer;
     int m_reloadMs = 800;
