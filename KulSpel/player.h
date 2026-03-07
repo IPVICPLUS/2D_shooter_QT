@@ -49,9 +49,9 @@ protected:
 private:
 
     QSet<int> m_keysDown;
-    qreal m_speed = 4.0;
+    qreal m_speed = 5.0;
 
-    QPointF m_aimDir= QPointF(1, 0); // senaste riktingen default är höger
+    QPointF m_aimDir= QPointF(1, 0); // senaste riktingen default är höger // ska ändras till mouse pointer
 
     // skott
 

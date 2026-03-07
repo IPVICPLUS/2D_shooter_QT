@@ -42,7 +42,7 @@ void Player :: takeDamage(int dmg)
     m_hp-= dmg;
 
     if(m_hp < 0) m_hp = 0;
-    if(m_hp >10) m_hp = 10;
+    if(m_hp >15) m_hp = 15;
 
     /*// lite visuell feedback
     setBrush(QBrush(QColor(80, 160, 255)).color().lighter(150));

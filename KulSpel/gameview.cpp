@@ -468,7 +468,7 @@ void GameView::tick()
     if(!m_player ) return;
 
     if(!m_gameOver){
-        //spawn NÄR DU SKA SPAWNA ITEMS
+        //spawn NÄR DU SKA SPAWNA ITEMS och ta bort saker. ska vara innanför !m_gameover men utanför andra funktioner
 
         int difficultyModifier = 0;
 
@@ -490,6 +490,7 @@ void GameView::tick()
 
         if(m_spawnTimer.elapsed() >= currentSpawnMs) {
             m_spawnTimer.restart();
+
 
 
             auto pickKind = [this](){
@@ -515,6 +516,7 @@ void GameView::tick()
         if(!m_bossSpawned && m_score >= 1000){
             spawnEnemy(Enemy::Kind::Miniboss);
             m_bossSpawned = true;
+
         }
 
         // powerups
@@ -524,7 +526,11 @@ void GameView::tick()
             spawnPowerup();
         }
 
-
+        // funktion för när boss spawnas ska alla andra enemies försvinna i 10 sekunder innan dem börjar spawna igen
+        // spelet ska även implementera wildcards där bullet damage++ samt andra roliga funktioner
+        // när minigun aktiveras ska ammosize gå till 60
+        // mouse pointer ska vara nya aim dir
+        // ska kunna skjuta när player moves
 
 
         // player Update (movement + reload timer)
