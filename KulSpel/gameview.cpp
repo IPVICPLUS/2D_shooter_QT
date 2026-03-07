@@ -182,6 +182,62 @@ void GameView::buildSettings()
     m_settingsScene.clear();
     m_settingsScene.setSceneRect(0, 0, 800, 600);
 
+    // för hover känsla det funkar bara
+    const QString btnStyle = R"(
+QPushButton{
+background-color: #2a2a2a;
+color: white;
+bordet 2px solid #555;
+border-radius: 10px;
+font-size: 18px;
+padding: 8px;
+}
+QPushButton:hover{
+background-color: #3a3a3a;
+border: 2px solid #8fd3ff;
+}
+QPushBUtton:pressed{
+background-color: #1f1f1f;
+border: 2px solid #ffffff;
+}
+)";
+    const QString comboBoxStyle = R"(
+QComboBox{
+background-color: #2a2a2a;
+color: white;
+bordet 2px solid #555;
+border-radius: 10px;
+font-size: 18px;
+padding: 8px;
+}
+QComboBox:hover{
+background-color: #3a3a3a;
+border: 2px solid #8fd3ff;
+}
+QComboBox:pressed{
+background-color: #1f1f1f;
+border: 2px solid #ffffff;
+}
+)";
+    const QString sliderStyle = R"(
+QSlider{
+background-color: #2a2a2a;
+color: white;
+bordet 2px solid #555;
+border-radius: 10px;
+font-size: 18px;
+padding: 8px;
+}
+QSlider:hover{
+background-color: #3a3a3a;
+border: 2px solid #8fd3ff;
+}
+QSlider:pressed{
+background-color: #1f1f1f;
+border: 2px solid #ffffff;
+}
+)";
+
     // titel
     auto* title = m_settingsScene.addText("SETTINGS");
     title->setDefaultTextColor(Qt::white);
@@ -197,6 +253,7 @@ void GameView::buildSettings()
     m_volumeSlider->setRange(0, 100);
     m_volumeSlider->setValue(m_volume);
     m_volumeSlider->setFixedWidth(300);
+    m_volumeSlider->setStyleSheet(sliderStyle);
 
     auto* volProxy = m_settingsScene.addWidget(m_volumeSlider);
     volProxy->setPos(250, 240);
@@ -214,6 +271,7 @@ void GameView::buildSettings()
     diffText->setPos(250, 320);
 
     m_difficultyBox = new QComboBox();
+    m_difficultyBox->setStyleSheet(comboBoxStyle);
     m_difficultyBox->addItem("Easy");
     m_difficultyBox->addItem("Normal");
     m_difficultyBox->addItem("Hard");
@@ -234,7 +292,7 @@ void GameView::buildSettings()
 
     m_backBtn = new QPushButton("Back");
     m_backBtn->setFixedSize(200, 45);
-
+    m_backBtn->setStyleSheet(btnStyle);
     auto* backProxy = m_settingsScene.addWidget(m_backBtn);
     backProxy->setPos(300, 470);
 
@@ -486,7 +544,7 @@ void GameView::tick()
 
         if(currentSpawnMs < m_minSpawnMs)
             currentSpawnMs = m_minSpawnMs;
-        const int maxPowerupsOnMap = 3;
+        const int maxPowerupsOnMap = 4;
 
         if(m_spawnTimer.elapsed() >= currentSpawnMs) {
             m_spawnTimer.restart();
@@ -562,7 +620,7 @@ void GameView::tick()
                 }
                 if(p->powerupType() == Powerup::Type::Shield) m_player->activateShield(6000); // 6 sek
                 if(p->powerupType() == Powerup::Type::Minigun) m_player->activateMinigun(6000);
-
+                //if(m_score>=500? m_player->activateShield(8000) : m_player->activateShield(600)); funkar inte men konceptet finns där
                 SoundManager::instance().playPickup();
                 pRemove.append(p);
             }
