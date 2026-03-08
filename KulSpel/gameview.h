@@ -14,6 +14,8 @@
 #include <QGraphicsRectItem>
 #include <QSlider>
 #include <QComboBox>
+#include <QMouseEvent>
+#include <QSet>
 
 class Player;
 class Enemy;
@@ -30,14 +32,23 @@ public:
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+        void keyReleaseEvent(QKeyEvent* event) override;
 
 private slots:
+
+
     void tick();
     void startGameFromMenu();
     void quitFromMenu();
     void openSettings();
 
+
+
 private:
+
+     QSet<int> m_keysDown;
+
     void buildMenu();
     void showMenu();
     void showGame();
@@ -50,6 +61,12 @@ private:
     void buildSettings();
     void spawnPowerup();
     void spawnEnemy(Enemy::Kind kind);
+    void clearEnemies();
+
+    QElapsedTimer m_bossPauseTimer;
+    bool m_bossPauseActive = false;
+    int m_bossPauseMs = 10000;
+
 
     // ---Menu animation ---
 

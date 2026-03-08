@@ -1,4 +1,5 @@
 #include "enemy.h"
+
 #include <QBrush>
 #include <QPen>
 #include <cmath>
@@ -52,6 +53,7 @@ Enemy::Enemy(Kind kind) : m_kind(kind)
 void Enemy::hit(int dmg)
 {
     m_hp -=dmg;
+
     m_flashing = true;
     m_flashTimer.restart();
     setBrush(QBrush(Qt::white));

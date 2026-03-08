@@ -19,7 +19,7 @@ public:
     Player();
 
     void updateMovement(const QRectF& bounds);
-
+    void setAimDirection(const QPointF& dir);
     //hp
     int hp() const {return m_hp; }
     void takeDamage(int dmg);
@@ -31,7 +31,7 @@ public:
     bool minigunActive() const { return m_minigunActive; }
 
 
-
+    void movePlayer(qreal dx, qreal dy, const QRectF& bounds);
     // skapa ett skott om möjligt returnerar Bullet* om den sköt annars nullptr
     Bullet* tryShoot();
 
@@ -43,8 +43,7 @@ public:
     void activateMinigun(int durationMS);
     void updateVisuals();
 protected:
-    void keyPressEvent(QKeyEvent* event) override;
-    void keyReleaseEvent(QKeyEvent* event) override;
+
 
 private:
 

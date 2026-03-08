@@ -31,7 +31,7 @@ GameView::GameView(QWidget *parent)
 
     m_menuScene.setSceneRect(0, 0, 800, 600);
     m_gameScene.setSceneRect(0, 0, 800, 600);
-
+    setMouseTracking(true);
     setBackgroundBrush(QBrush(QColor(20, 20, 20)));
 
     buildMenu();
@@ -167,6 +167,10 @@ void GameView::showMenu()
 void GameView::showGame()
 {
     setScene(&m_gameScene);
+    setFocus();
+
+    if(m_player)
+        m_player->setFocus();
 }
 
 void GameView::startGameFromMenu()
@@ -342,6 +346,12 @@ void GameView::resetGame()
     m_gameScene.addItem(m_player);
     m_player->setPos(100, 300);
 
+    m_player->setFlag(QGraphicsItem::ItemIsFocusable, true);
+    m_player->setFocus();
+
+    setFocusPolicy(Qt::StrongFocus);
+    setFocus();
+
     m_spawnTimer.restart();
     spawnEnemy();
     updateHud();
@@ -350,6 +360,8 @@ void GameView::resetGame()
 void GameView::keyPressEvent(QKeyEvent* event)
 {
 
+    m_keysDown.insert(event->key());
+    qDebug()<< "Gameview key press " << event->key();
     // ESC: tillbaka till menyn (från game)
     if(event->key()== Qt::Key_Escape){
         showMenu();
@@ -374,13 +386,15 @@ void GameView::keyPressEvent(QKeyEvent* event)
         event->accept();
         return;
     }
-
+    if(scene() == &m_gameScene && !m_gameOver && event->key() == Qt::Key_R && m_player){
+        m_player->startReload();
+        event->accept();
+        return;
+    }
     // space försök skjut (gameview äger listan och scen-add)
     if(scene() == &m_gameScene && !m_gameOver && event->key() == Qt::Key_Space && m_player) {
         Bullet* b = m_player->tryShoot();
-        qDebug() << "Space pressed, try shoot returned: " << (b ? "BULLET" : "nullptr")
-                 <<"ammo:" << m_player->ammoInMag()
-                 <<"reloading:" << m_player->isReloading();
+
         if(b){
             m_gameScene.addItem(b);
             m_bullets.append(b);
@@ -392,6 +406,25 @@ void GameView::keyPressEvent(QKeyEvent* event)
     }
     QGraphicsView::keyPressEvent(event);
 
+}
+
+void GameView::keyReleaseEvent(QKeyEvent* event)
+{
+    m_keysDown.remove(event->key());
+    QGraphicsView::keyReleaseEvent(event);
+}
+
+void GameView::mouseMoveEvent(QMouseEvent* event)
+{
+    if(scene() == &m_gameScene && m_player){
+        QPointF mouseScenePos = mapToScene(event->pos());
+        QPointF playerCenter = m_player->sceneBoundingRect().center();
+
+        QPointF dir = mouseScenePos - playerCenter;
+        m_player->setAimDirection(dir);
+
+    }
+    QGraphicsView::mouseMoveEvent(event);
 }
 
 void GameView::spawnPowerup()
@@ -498,12 +531,35 @@ void GameView::spawnHealthPickup()
     p->setPos(x, y);
     m_pickups.append(p);
 }
+
+void GameView::clearEnemies()
+{
+    for(Enemy* e : m_enemies){
+        m_gameScene.removeItem(e);
+        delete(e);
+    }
+
+    m_enemies.clear();
+}
 void GameView::tick()
 {
     if(scene() != &m_gameScene){
         return;
     }
     const QRectF bounds = m_gameScene.sceneRect();
+// här ska movement ligga
+    if(m_player){
+    qreal dx = 0;
+    qreal dy = 0;
+    qreal speed = 5.0;
+
+    if(m_keysDown.contains(Qt::Key_Left) || m_keysDown.contains(Qt::Key_A)) dx -= speed;
+    if(m_keysDown.contains(Qt::Key_Right) || m_keysDown.contains(Qt::Key_D)) dx += speed;
+    if(m_keysDown.contains(Qt::Key_Up) || m_keysDown.contains(Qt::Key_W)) dy -= speed;
+    if(m_keysDown.contains(Qt::Key_Down) || m_keysDown.contains(Qt::Key_S)) dy = speed;
+
+    m_player->movePlayer(dx, dy, bounds);
+    }
 
     if(scene() == &m_menuScene){
         if(m_previewPlayer){
@@ -546,7 +602,7 @@ void GameView::tick()
             currentSpawnMs = m_minSpawnMs;
         const int maxPowerupsOnMap = 4;
 
-        if(m_spawnTimer.elapsed() >= currentSpawnMs) {
+        if(!m_bossPauseActive && m_spawnTimer.elapsed() >= currentSpawnMs) {
             m_spawnTimer.restart();
 
 
@@ -572,7 +628,27 @@ void GameView::tick()
         }
 
         if(!m_bossSpawned && m_score >= 1000){
+
+            clearEnemies();
+
             spawnEnemy(Enemy::Kind::Miniboss);
+
+            //-----Screen Flash-----
+            QGraphicsRectItem* flash = m_gameScene.addRect(
+                m_gameScene.sceneRect(),
+                Qt::NoPen,
+                QBrush(QColor(255,255,255,140))
+                );
+            flash->setZValue(9999);
+
+            QTimer::singleShot(120, [this, flash]() {
+                m_gameScene.removeItem(flash);
+                delete flash;
+            });
+
+            m_bossPauseActive = true;
+            m_bossPauseTimer.restart();
+
             m_bossSpawned = true;
 
         }
@@ -586,8 +662,8 @@ void GameView::tick()
 
         // funktion för när boss spawnas ska alla andra enemies försvinna i 10 sekunder innan dem börjar spawna igen
         // spelet ska även implementera wildcards där bullet damage++ samt andra roliga funktioner
-        // när minigun aktiveras ska ammosize gå till 60
-        // mouse pointer ska vara nya aim dir
+
+
         // ska kunna skjuta när player moves
 
 
@@ -622,13 +698,15 @@ void GameView::tick()
                 if(p->powerupType() == Powerup::Type::Minigun) m_player->activateMinigun(6000);
                 //if(m_score>=500? m_player->activateShield(8000) : m_player->activateShield(600)); funkar inte men konceptet finns där
                 SoundManager::instance().playPickup();
-                pRemove.append(p);
+                if(!pRemove.contains(p))
+                    pRemove.append(p);
             }
         }
 
         for(Powerup* p: pRemove){
             m_powerups.removeOne(p);
             m_gameScene.removeItem(p);
+                qDebug() << "Deleting powerup" << p;
             delete p;
         }
         const QPointF playerCenter = m_player->sceneBoundingRect().center();
@@ -664,15 +742,22 @@ void GameView::tick()
 
             if(!bounds.intersects(b->sceneBoundingRect())){
 
-                bulletsToRemove.append(b);
+                if(bulletsToRemove.contains(b))
+                    bulletsToRemove.append(b);
                 continue;
             }
 
             for(Enemy* e : m_enemies){
+
+                if(enemiesToRemove.contains(e))
+                    continue;
                 if(b->collidesWithItem(e)){
+                    if(!bulletsToRemove.contains(b))
+                        bulletsToRemove.append(b);
+
                     e->hit();
-                    bulletsToRemove.append(b);
-                    if(e->isDead()){
+
+                    if(e->isDead() && !enemiesToRemove.contains(e)){
                         enemiesToRemove.append(e);
                         m_score += 10;
                     }
@@ -683,13 +768,18 @@ void GameView::tick()
 
         }
 
+        if(m_bossPauseActive && m_bossPauseTimer.elapsed() >= m_bossPauseMs){
+            m_bossPauseActive = false;
+        }
+
         // enemy bullets logik
 
         for(EnemyBullet* b : m_enemyBullets){
             b->step();
 
             if(!bounds.intersects(b->sceneBoundingRect())){
-                enemyBulletsToRemove.append(b);
+                if(!enemyBulletsToRemove.contains(b))
+                    enemyBulletsToRemove.append(b);
                 continue;
             }
             if(b->collidesWithItem(m_player)){
@@ -702,12 +792,14 @@ void GameView::tick()
         for(EnemyBullet* b: enemyBulletsToRemove){
             m_enemyBullets.removeOne(b);
             m_gameScene.removeItem(b);
+            //qDebug() << "Deleting enemy bullet" << b;
             delete b;
         }
         // ta bort bullets
         for (Bullet* b : bulletsToRemove){
             m_bullets.removeOne(b);
             m_gameScene.removeItem(b);
+                //qDebug() << "Deleting bullet" << b;
             delete b;
         }
 
@@ -715,6 +807,7 @@ void GameView::tick()
         for(Enemy* e : enemiesToRemove){
             m_enemies.removeOne(e);
             m_gameScene.removeItem(e);
+                //qDebug() << "Deleting enemy " << e;
             delete e;
         }
 

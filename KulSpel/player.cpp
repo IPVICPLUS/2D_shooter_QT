@@ -108,19 +108,7 @@ Bullet* Player::tryShoot()
 
     return b;
 }
-void Player::keyPressEvent(QKeyEvent* event){
-    m_keysDown.insert(event->key());
 
-    if(event->key() == Qt::Key_R){
-        startReload();
-    }
-    event->accept();
-}
-
-void Player::keyReleaseEvent(QKeyEvent* event){
-    m_keysDown.remove(event->key());
-    event->accept();
-}
 
 void Player::updateVisuals()
 {
@@ -133,7 +121,29 @@ void Player::updateVisuals()
         setBrush(QBrush(QColor(80, 160, 255)));
 }
 
+void Player::setAimDirection(const QPointF & dir)
+{
+    qreal len = std::sqrt(dir.x() * dir.x() + dir.y() * dir.y());
 
+    if ( len < 0.001)
+        return;
+    m_aimDir = QPointF(dir.x() / len, dir.y() / len);
+}
+
+void Player::movePlayer(qreal dx, qreal dy, const QRectF& bounds)
+{
+    moveBy(dx, dy);
+
+    QRectF r = sceneBoundingRect();
+    QPointF p = pos();
+
+    if(r.left() < bounds.left()) p.setX(bounds.left());
+    if(r.right() > bounds.right()) p.setX(bounds.right() - rect().width());
+    if(r.top() < bounds.top()) p.setY(bounds.top());
+    if(r.bottom() > bounds.bottom()) p.setY(bounds.bottom() - rect().height());
+
+    setPos(p);
+}
 void Player::updateMovement(const QRectF& bounds)
 {
     // shield expire
@@ -154,18 +164,12 @@ void Player::updateMovement(const QRectF& bounds)
         m_reloading = false;
     }
 
-    qreal dx = 0;
-    qreal dy = 0;
-
-    if(m_keysDown.contains(Qt::Key_Left) || m_keysDown.contains(Qt::Key_A)) dx -= m_speed;
-    if(m_keysDown.contains(Qt::Key_Right) || m_keysDown.contains(Qt::Key_D)) dx += m_speed;
-    if(m_keysDown.contains(Qt::Key_Up) || m_keysDown.contains(Qt::Key_W)) dy -= m_speed;
-    if(m_keysDown.contains(Qt::Key_Down) || m_keysDown.contains(Qt::Key_S)) dy = m_speed;
 
     // uppdatera aimDir till senaste input ( om någon)
-    if(dx != 0  || dy !=0)
-        m_aimDir = QPointF(dx, dy);
-    moveBy(dx, dy);
+    //if(dx != 0  || dy !=0)
+        //m_aimDir = QPointF(dx, dy);
+
+
 
     // clamp inom scenen
 
