@@ -10,7 +10,7 @@
 class Enemy : public QGraphicsRectItem
 {
 public:
-    enum class Kind{ Chaser, Shooter, Tank, Miniboss};
+    enum class Kind{ Chaser, Shooter, Tank, MiniBoss};
 
     Enemy(Kind kind = Kind::Chaser);
 
@@ -23,12 +23,18 @@ public:
     bool wantsToShoot() const;
     QPointF shootDirection(const QPointF& playerCenter) const;
     void updateVisuals();
-
-
+    int maxHp() const{ return m_maxHp; }
+    int hp() const{return m_hp; }
 private:
 
 
     void moveTowards(const QPointF& playerCenter);
+
+
+    //----READ BOSS HEALTHBAR----
+
+
+    int m_maxHp = 2;
 
     Kind m_kind;
 

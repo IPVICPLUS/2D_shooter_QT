@@ -62,11 +62,30 @@ private:
     void spawnPowerup();
     void spawnEnemy(Enemy::Kind kind);
     void clearEnemies();
+    void startScreenShake(int durationMs, int strength);
+    void updateScreenShake();
+    void createBossHealthBar();
+    void updateBossHealthBar();
+    void removeBossHealthBar();
 
     QElapsedTimer m_bossPauseTimer;
     bool m_bossPauseActive = false;
+    bool m_spawnBossNextTick = false;
     int m_bossPauseMs = 10000;
 
+    // -----BOSS HEALTH BAR ------
+    QGraphicsRectItem* m_bossHealthBarBg = nullptr;
+    QGraphicsRectItem* m_bossHealthBarFill = nullptr;
+    Enemy* m_currentBoss = nullptr;
+
+
+
+    //boss shake
+    bool m_screenShakeActive = false;
+    QElapsedTimer m_screenShakeTimer;
+    int m_ScreenShakeDurationMs = 400;
+    int m_screenShakeStrength = 8;
+    QPoint m_originalViewPos;
 
     // ---Menu animation ---
 

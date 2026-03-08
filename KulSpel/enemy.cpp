@@ -18,14 +18,14 @@ Enemy::Enemy(Kind kind) : m_kind(kind)
     case Kind::Chaser:
         setRect(0,0,36,36);
         setBrush(QBrush(QColor(255,90,90)));
-        m_hp = 2; m_speed = 1.8;
+        m_hp = 2; m_maxHp = 2; m_speed = 1.8;
         break;
 
 
     case Kind::Shooter:
         setRect(0,0,34,34);
         setBrush(QBrush(QColor(255,144,60)));
-        m_hp = 2; m_speed = 1.2;
+        m_hp = 2; m_maxHp = 2; m_speed = 1.2;
         m_shootEveryMs = 900;
         m_shootTimer.start();
         break;
@@ -33,13 +33,13 @@ Enemy::Enemy(Kind kind) : m_kind(kind)
     case Kind::Tank:
         setRect(0,0,44,44);
         setBrush(QBrush(QColor(200, 60, 220)));
-        m_hp = 6; m_speed = 0.8;
+        m_hp = 6; m_maxHp = 6; m_speed = 0.8;
         break;
 
-    case Kind::Miniboss:
+    case Kind::MiniBoss:
         setRect(0,0,80,80);
         setBrush(QBrush(QColor(130,60,255)));
-        m_hp = 40; m_speed = 0.7;
+        m_hp = 40; m_maxHp = 40; m_speed = 0.7;
         m_shootEveryMs = 400;
         m_shootTimer.start();
         break;
@@ -71,7 +71,7 @@ void Enemy::updateVisuals()
         case Kind::Chaser: setBrush(QBrush(QColor(255,90,90))); break;
         case Kind::Shooter: setBrush(QBrush(QColor(255,140,60))); break;
         case Kind::Tank: setBrush(QBrush(QColor(200,60,220))); break;
-        case Kind::Miniboss: setBrush(QBrush(QColor(130,60,255))); break;
+        case Kind::MiniBoss: setBrush(QBrush(QColor(130,60,255))); break;
         }
     }
 }
@@ -107,7 +107,7 @@ void Enemy::step(const QPointF& playerCenter)
 
 bool Enemy::wantsToShoot()const
 {
-    if(m_kind != Kind::Shooter && m_kind != Kind::Miniboss) return false;
+    if(m_kind != Kind::Shooter && m_kind != Kind::MiniBoss) return false;
     return m_shootTimer.isValid() && m_shootTimer.elapsed() >= m_shootEveryMs;
 }
 

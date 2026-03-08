@@ -316,6 +316,31 @@ void GameView::quitFromMenu()
 {
     close(); // stänger programmet
 }
+void GameView::startScreenShake(int durationMs, int strength)
+{
+    m_screenShakeActive = true;
+    m_ScreenShakeDurationMs = durationMs;
+    m_screenShakeStrength = strength;
+    m_screenShakeTimer.restart();
+    m_originalViewPos = pos();
+}
+
+void GameView::updateScreenShake()
+{
+    if(!m_screenShakeActive)
+        return;
+
+    if(m_screenShakeTimer.elapsed() >= m_ScreenShakeDurationMs){
+        m_screenShakeActive = false;
+        move(m_originalViewPos);
+        return;
+    }
+
+    int offsetX = QRandomGenerator::global()->bounded(-m_screenShakeStrength, m_screenShakeStrength +1);
+    int offsetY = QRandomGenerator::global()->bounded(-m_screenShakeStrength, m_screenShakeStrength +1);
+
+    move(m_originalViewPos + QPoint(offsetX, offsetY));
+}
 void GameView::resetGame()
 {
 
@@ -532,6 +557,71 @@ void GameView::spawnHealthPickup()
     m_pickups.append(p);
 }
 
+void GameView::createBossHealthBar()
+{
+    if (!m_currentBoss)
+        return;
+
+    // Ta bort gamla bars säkert
+    if (m_bossHealthBarBg) {
+        if (m_bossHealthBarBg->scene())
+            m_gameScene.removeItem(m_bossHealthBarBg);
+        delete m_bossHealthBarBg;
+        m_bossHealthBarBg = nullptr;
+    }
+
+    if (m_bossHealthBarFill) {
+        if (m_bossHealthBarFill->scene())
+            m_gameScene.removeItem(m_bossHealthBarFill);
+        delete m_bossHealthBarFill;
+        m_bossHealthBarFill = nullptr;
+    }
+
+    m_bossHealthBarBg = new QGraphicsRectItem(150, 40, 500, 24);
+    m_bossHealthBarBg->setPen(QPen(Qt::white));
+    m_bossHealthBarBg->setBrush(QBrush(QColor(40, 40, 40)));
+    m_bossHealthBarBg->setZValue(10000);
+    m_gameScene.addItem(m_bossHealthBarBg);
+
+    m_bossHealthBarFill = new QGraphicsRectItem(152, 42, 496, 20);
+    m_bossHealthBarFill->setPen(Qt::NoPen);
+    m_bossHealthBarFill->setBrush(QBrush(QColor(200, 50, 50)));
+    m_bossHealthBarFill->setZValue(10001);
+    m_gameScene.addItem(m_bossHealthBarFill);
+}
+
+void GameView::updateBossHealthBar()
+{
+    if(!m_currentBoss || !m_bossHealthBarFill)
+        return;
+
+    if(m_currentBoss->maxHp() <= 0)
+        return;
+
+    qreal ratio = (qreal)m_currentBoss->hp() / (qreal)m_currentBoss->maxHp();
+    if(ratio < 0) ratio = 0;
+    if(ratio > 1) ratio = 1;
+
+    m_bossHealthBarFill->setRect(153, 42, 496 * ratio, 20);
+}
+
+void GameView::removeBossHealthBar()
+{
+    if (m_bossHealthBarBg) {
+        if (m_bossHealthBarBg->scene())
+            m_gameScene.removeItem(m_bossHealthBarBg);
+        delete m_bossHealthBarBg;
+        m_bossHealthBarBg = nullptr;
+    }
+
+    if (m_bossHealthBarFill) {
+        if (m_bossHealthBarFill->scene())
+            m_gameScene.removeItem(m_bossHealthBarFill);
+        delete m_bossHealthBarFill;
+        m_bossHealthBarFill = nullptr;
+    }
+}
+
 void GameView::clearEnemies()
 {
     for(Enemy* e : m_enemies){
@@ -540,6 +630,7 @@ void GameView::clearEnemies()
     }
 
     m_enemies.clear();
+    m_currentBoss = nullptr;
 }
 void GameView::tick()
 {
@@ -560,6 +651,8 @@ void GameView::tick()
 
     m_player->movePlayer(dx, dy, bounds);
     }
+
+
 
     if(scene() == &m_menuScene){
         if(m_previewPlayer){
@@ -593,7 +686,8 @@ void GameView::tick()
         case Difficulty::Hard: difficultyModifier = -800; break;
 
         }
-
+        updateScreenShake();
+        updateBossHealthBar();
         int difficultyReduction = (m_score / 100) * 200;
         int currentSpawnMs = m_baseSpawnMs - difficultyReduction + difficultyModifier;
 
@@ -627,31 +721,7 @@ void GameView::tick()
             spawnEnemy(kind);
         }
 
-        if(!m_bossSpawned && m_score >= 1000){
 
-            clearEnemies();
-
-            spawnEnemy(Enemy::Kind::Miniboss);
-
-            //-----Screen Flash-----
-            QGraphicsRectItem* flash = m_gameScene.addRect(
-                m_gameScene.sceneRect(),
-                Qt::NoPen,
-                QBrush(QColor(255,255,255,140))
-                );
-            flash->setZValue(9999);
-
-            QTimer::singleShot(120, [this, flash]() {
-                m_gameScene.removeItem(flash);
-                delete flash;
-            });
-
-            m_bossPauseActive = true;
-            m_bossPauseTimer.restart();
-
-            m_bossSpawned = true;
-
-        }
 
         // powerups
         if (m_powerups.size() < maxPowerupsOnMap &&
@@ -668,7 +738,6 @@ void GameView::tick()
 
 
         // player Update (movement + reload timer)
-
         m_player->updateMovement(bounds);
 
         // bullets update + collisions (SÄKERT)
@@ -722,7 +791,7 @@ void GameView::tick()
                 if(e->wantsToShoot()){
                     e->onShotFired();
                     QPointF d = e->shootDirection(playerCenter);
-                    const qreal spd = (e->kind() == Enemy::Kind::Miniboss) ? 7.0 : 6.0;
+                    const qreal spd = (e->kind() == Enemy::Kind::MiniBoss) ? 7.0 : 6.0;
 
                     auto* eb = new EnemyBullet(d.x()*spd, d.y()*spd);
 
@@ -742,7 +811,7 @@ void GameView::tick()
 
             if(!bounds.intersects(b->sceneBoundingRect())){
 
-                if(bulletsToRemove.contains(b))
+                if(!bulletsToRemove.contains(b))
                     bulletsToRemove.append(b);
                 continue;
             }
@@ -805,18 +874,111 @@ void GameView::tick()
 
         // ta bort enemies
         for(Enemy* e : enemiesToRemove){
+            if(e == m_currentBoss){
+                m_currentBoss = nullptr;
+                removeBossHealthBar();
+            }
             m_enemies.removeOne(e);
             m_gameScene.removeItem(e);
-                //qDebug() << "Deleting enemy " << e;
+            //qDebug() << "Deleting enemy " << e;
             delete e;
+            // gameOvER...
         }
-
-        // game over
-
         if (m_player->hp() <= 0){
             m_gameOver = true;
         }
 
+        if(!m_bossSpawned && m_score >= 1000){
+
+            m_spawnBossNextTick = true;
+            m_bossSpawned = true;
+
+        }
+
+    }
+
+    /*if(m_spawnBossNextTick) {
+        m_spawnBossNextTick = false;
+
+        clearEnemies();
+        spawnEnemy(Enemy::Kind::MiniBoss);
+
+        if(!m_enemies.isEmpty()){
+            m_currentBoss = m_enemies.last();
+            createBossHealthBar();
+        }
+
+        //-----Screen Flash-----
+        QGraphicsRectItem* flash = m_gameScene.addRect(
+            m_gameScene.sceneRect(),
+            Qt::NoPen,
+            QBrush(QColor(255,255,255,140))
+            );
+        flash->setZValue(9999);
+
+        QTimer::singleShot(120, [this, flash]() {
+            m_gameScene.removeItem(flash);
+            delete flash;
+        });
+
+        startScreenShake(400, 8);
+
+        m_bossPauseActive = true;
+        m_bossPauseTimer.restart();
+
+        for(EnemyBullet* b : m_enemyBullets){
+            m_gameScene.removeItem(b);
+            delete b;
+        }
+        m_enemyBullets.clear();
+
+    }*/
+
+    if (m_spawnBossNextTick) {
+        qDebug() << "boss block start";
+        m_spawnBossNextTick = false;
+
+        qDebug() << "before clearEnemies";
+        clearEnemies();
+        qDebug() << "after clearEnemies";
+
+        qDebug() << "before spawnEnemy";
+        spawnEnemy(Enemy::Kind::MiniBoss);
+        qDebug() << "after spawnEnemy";
+
+        if (!m_enemies.isEmpty()) {
+            qDebug() << "before set current boss";
+            m_currentBoss = m_enemies.last();
+            qDebug() << "after set current boss";
+
+            qDebug() << "before createBossHealthBar";
+            createBossHealthBar();
+            qDebug() << "after createBossHealthBar";
+        }
+
+        qDebug() << "before flash";
+        QGraphicsRectItem* flash = m_gameScene.addRect(
+            m_gameScene.sceneRect(),
+            Qt::NoPen,
+            QBrush(QColor(255,255,255,140))
+            );
+        flash->setZValue(9999);
+        qDebug() << "after flash";
+
+        QTimer::singleShot(120, [this, flash]() {
+            qDebug() << "flash delete";
+            m_gameScene.removeItem(flash);
+            delete flash;
+        });
+
+        qDebug() << "before shake";
+        startScreenShake(400, 8);
+        qDebug() << "after shake";
+
+        m_bossPauseActive = true;
+        m_bossPauseTimer.restart();
+
+        qDebug() << "boss block end";
     }
 
 
